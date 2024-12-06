@@ -5,26 +5,41 @@ import usb_hid
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.keycode import Keycode
 
-# Set up the built-in LED on the Pico
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 
-# Set up the keyboard emulation
+button_pin = digitalio.DigitalInOut(board.GP17)
+button_pin.direction = digitalio.Direction.INPUT
+
 keyboard = Keyboard(usb_hid.devices)
+keyboard_enabled = False
 
-# Main loop
+last_keypress_time = time.monotonic()
+keypress_interval = 0.001
+
 while True:
-    # Blink the LED (quick blink)
-    led.value = True
-    time.sleep(0.1)
+    if button_pin.value:
+        keyboard_enabled = not keyboard_enabled
+        time.sleep(0.1)
 
-    # Send the letter 'G' key press
-    keyboard.press(Keycode.G)
-    time.sleep(0.1)  # Hold key for a short time
-    keyboard.release_all()
+    if keyboard_enabled:
+        led.value = True
 
-    led.value = False
-    time.sleep(0.1)
+        current_time = time.monotonic()
+        
+        if current_time - last_keypress_time >= keypress_interval:
 
-    #Add a delay to control how often the "G" key is sent
-    time.sleep(10)  # Wait 1 second before repeating
+            print(f"Sending G at {current_time}")
+
+            keyboard.press(Keycode.G)
+            time.sleep(0.1)
+            keyboard.release_all()
+
+            last_keypress_time = current_time
+
+    else:
+        led.value = False
+        print("Keyboard disabled")
+
+
+    time.sleep(0.05)
